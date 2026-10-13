@@ -12,6 +12,7 @@ const products = [
 
 let cart = [];
 let isOrderCompleted = false;
+let orderCounter = 1001; // Auto-incrementing transaction sequence
 
 // ==========================================
 // 2. DOM ELEMENT REFERENCES
@@ -24,12 +25,13 @@ const summaryTotal = document.getElementById("summary-total");
 
 const amountPaidInput = document.getElementById("amount-paid");
 const paymentError = document.getElementById("payment-error");
+const paymentSuccess = document.getElementById("payment-success");
 const changeDisplay = document.getElementById("change-display");
 const confirmPayBtn = document.getElementById("confirm-pay-btn");
 const receiptPreview = document.getElementById("receipt-preview");
 const newOrderBtn = document.getElementById("new-order-btn");
 
-// Reset error alerts when input changes
+// Reset error/success alerts when input changes
 amountPaidInput.addEventListener("input", clearPaymentMessages);
 
 // ==========================================
@@ -169,6 +171,10 @@ function updateOrderSummary() {
 function clearPaymentMessages() {
     paymentError.style.display = "none";
     paymentError.textContent = "";
+    if (paymentSuccess) {
+        paymentSuccess.style.display = "none";
+        paymentSuccess.textContent = "";
+    }
 }
 
 function resetPaymentState() {
@@ -177,6 +183,7 @@ function resetPaymentState() {
 }
 
 function showPaymentError(message) {
+    clearPaymentMessages();
     paymentError.textContent = message;
     paymentError.style.display = "block";
     changeDisplay.textContent = "₱0.00";
@@ -208,12 +215,18 @@ function processPayment() {
         return;
     }
 
-    // Sufficient payment confirmed -> Compute change
+    // Compute change
     const change = amountPaid - totalDue;
     changeDisplay.textContent = `₱${change.toFixed(2)}`;
 
-    // Step 5: Render receipt and lock active transaction
+    // Display payment confirmation
+    paymentSuccess.textContent = "Payment successful! Transaction complete.";
+    paymentSuccess.style.display = "block";
+
+    // Generate digital receipt with transaction reference
     generateReceipt(amountPaid, totalDue, change);
+
+    // Lock transaction controls
     isOrderCompleted = true;
     newOrderBtn.style.display = "block";
     confirmPayBtn.disabled = true;
@@ -221,10 +234,11 @@ function processPayment() {
 }
 
 // ==========================================
-// 7. STEP 5: RECEIPT GENERATION & TRANSACTION RESET
+// 7. RECEIPT GENERATION & TRANSACTION RESET
 // ==========================================
 function generateReceipt(amountPaid, totalDue, change) {
     const timestamp = new Date().toLocaleString();
+    const txnRef = `TXN-${orderCounter++}`; // Unique reference per transaction
 
     let itemsHtml = "";
     cart.forEach(item => {
@@ -242,6 +256,7 @@ function generateReceipt(amountPaid, totalDue, change) {
             <div class="receipt-center">
                 <strong>CAMPUS BAKERY POS</strong><br>
                 <span>Official Order Receipt</span><br>
+                <span><strong>Ref #: ${txnRef}</strong></span><br>
                 <span>${timestamp}</span>
             </div>
             <div class="receipt-divider"></div>
@@ -281,8 +296,9 @@ function startNewOrder() {
     renderCart();
     updateOrderSummary();
     resetPaymentState();
+    clearPaymentMessages();
     receiptPreview.innerHTML = `<p class="placeholder-text">Transaction receipt will be printed here after checkout.</p>`;
 }
 
-// Initial invocation on load
+// Initialize on page load
 renderProductList();
