@@ -1,4 +1,3 @@
-// Scenario 2: Campus Bakery POS - Hard-coded Product Catalog
 const products = [
     { id: 1, name: "Pandesal (pack of 5)", price: 25.00 },
     { id: 2, name: "Ensaymada", price: 20.00 },
@@ -8,30 +7,113 @@ const products = [
     { id: 6, name: "Brewed Coffee (cup)", price: 25.00 }
 ];
 
+let cart = [];
+
 const productGrid = document.getElementById("product-grid");
+const cartItemsContainer = document.getElementById("cart-items");
+const summaryCount = document.getElementById("summary-count");
+const summarySubtotal = document.getElementById("summary-subtotal");
+const summaryTotal = document.getElementById("summary-total");
 
 function renderProductList() {
     productGrid.innerHTML = "";
-
     products.forEach(product => {
         const card = document.createElement("div");
         card.classList.add("product-card");
-
         card.innerHTML = `
             <h3>${product.name}</h3>
             <p class="price-tag">₱${product.price.toFixed(2)}</p>
             <button class="add-btn" onclick="addToCart(${product.id})">Add to Cart</button>
         `;
-
         productGrid.appendChild(card);
     });
 }
 
 function addToCart(productId) {
-    const selectedItem = products.find(p => p.id === productId);
-    if (selectedItem) {
-        console.log(`[Event] Added to Cart: ${selectedItem.name} — ₱${selectedItem.price.toFixed(2)}`);
+    const existingItem = cart.find(item => item.id === productId);
+
+    if (existingItem) {
+        existingItem.quantity += 1;
+    } else {
+        const productToAdd = products.find(p => p.id === productId);
+        if (productToAdd) {
+            cart.push({
+                id: productToAdd.id,
+                name: productToAdd.name,
+                price: productToAdd.price,
+                quantity: 1
+            });
+        }
     }
+
+    renderCart();
+    updateOrderSummary();
+}
+
+function changeQuantity(productId, delta) {
+    const item = cart.find(item => item.id === productId);
+    if (!item) return;
+
+    item.quantity += delta;
+
+    if (item.quantity <= 0) {
+        removeFromCart(productId);
+        return;
+    }
+
+    renderCart();
+    updateOrderSummary();
+}
+
+function removeFromCart(productId) {
+    cart = cart.filter(item => item.id !== productId);
+    renderCart();
+    updateOrderSummary();
+}
+
+function renderCart() {
+    if (cart.length === 0) {
+        cartItemsContainer.innerHTML = `<p class="placeholder-text">Cart is empty. Click "Add to Cart" on any product.</p>`;
+        return;
+    }
+
+    cartItemsContainer.innerHTML = "";
+
+    cart.forEach(item => {
+        const itemSubtotal = item.price * item.quantity;
+        const row = document.createElement("div");
+        row.classList.add("cart-item-row");
+
+        row.innerHTML = `
+            <div class="cart-item-info">
+                <div class="cart-item-name">${item.name}</div>
+                <div class="cart-item-unit-price">₱${item.price.toFixed(2)} each</div>
+            </div>
+            <div class="cart-item-controls">
+                <button class="qty-btn" onclick="changeQuantity(${item.id}, -1)">-</button>
+                <span class="cart-item-qty">${item.quantity}</span>
+                <button class="qty-btn" onclick="changeQuantity(${item.id}, 1)">+</button>
+            </div>
+            <div class="cart-item-subtotal">₱${itemSubtotal.toFixed(2)}</div>
+            <button class="remove-btn" title="Remove Item" onclick="removeFromCart(${item.id})">×</button>
+        `;
+
+        cartItemsContainer.appendChild(row);
+    });
+}
+
+function updateOrderSummary() {
+    let totalItems = 0;
+    let grandTotal = 0;
+
+    cart.forEach(item => {
+        totalItems += item.quantity;
+        grandTotal += (item.price * item.quantity);
+    });
+
+    summaryCount.textContent = totalItems;
+    summarySubtotal.textContent = `₱${grandTotal.toFixed(2)}`;
+    summaryTotal.textContent = `₱${grandTotal.toFixed(2)}`;
 }
 
 renderProductList();
